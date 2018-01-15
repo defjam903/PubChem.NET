@@ -304,33 +304,31 @@ namespace PubChem.NET
         /// <param name="apiAction"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        private T MakeAPICall<T>(string apiAction, object args)
-        {
-            // Create Url path and client
-            string fullUrl = string.Format(_httpUrl, apiAction);
-            var client = new RestClient(); 
+private T MakeAPICall(string apiAction, object args)
+{
+    // NOTES removed the dependency on RESTSharp there seems to be a known issue with base URL that returns an error in the JSON 
+    string fullUrl = string.Format(_httpUrl, apiAction);
+    T results = null;
+    string json = "";
+    WebRequest request = WebRequest.Create(fullUrl);
+    request.Credentials = CredentialCache.DefaultCredentials;
+    WebResponse response = request.GetResponse();
+    Stream dataStream = response.GetResponseStream();
+    StreamReader reader = new StreamReader(dataStream);
+    string responseFromServer = reader.ReadToEnd();
+    json = responseFromServer;
+    reader.Close();
+    response.Close();
+    try
+    {
+        results = JsonConvert.DeserializeObject<T>(json);
+    }
+    catch (Exception ex)
+    {
+    }
 
-            // Set default results
-            T results = default(T);
-
-            // Make POST request and deserialize json response
-            var request = new RestRequest(fullUrl, Method.POST);
-            var response = client.Execute(request);
-            var content = response.Content;
-            results = JsonConvert.DeserializeObject<T>(content);
-
-            // Handle exception
-            if (response.ErrorException != null)
-            {
-                const string message = "Error retrieving response.";
-                var pubchemException = new ApplicationException(message, response.ErrorException);
-                throw pubchemException;
-            }
-
-            // Return the results
-            return results;
-
-        }
+    return results;
+}
 
         #endregion
     }
